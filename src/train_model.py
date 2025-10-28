@@ -61,7 +61,7 @@ train_dataset = train_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 validation_dataset = validation_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
-# Criando o modelo Sequencial
+print("Construindo o modelo...")
 model = keras.Sequential([
     # Input Layer e Data Augmentation
     layers.Input(shape=(224, 224, 3)),
@@ -96,17 +96,19 @@ model = keras.Sequential([
 # Visualizar a arquitetura do modelo
 model.summary()
 
+print("Compilando o modelo...")
 model.compile(
     optimizer='adam', # Otimizador Adam é uma excelente escolha padrão
     loss=tf.keras.losses.BinaryCrossentropy(), # Loss para classificação binária com saída sigmoide
     metrics=['accuracy'] # Métrica para acompanhar durante o treino
 )
 
-
+print("Iniciando o treinamento do modelo...")
 history = model.fit(
     train_dataset,
     epochs=15,
     validation_data=test_dataset
 )
 
+print("Salvando o modelo treinado...")
 model.save(r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\models\model_cnn.keras')
