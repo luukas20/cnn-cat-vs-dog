@@ -1,11 +1,14 @@
+import pandas as pd
+import kagglehub
 import glob
 import os
 import shutil
 import random
 from PIL import Image
+from sklearn.model_selection import train_test_split
 import tensorflow as tf
-from tensorflow import keras
-import keras.utils as image
+import tensorflow.keras.utils as image
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers
 
 # Parâmetros
@@ -13,56 +16,68 @@ IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 16
 DATA_DIR = r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\dataset'
 
-# Carregar os datasets de treino e validação
-train_dataset = tf.keras.utils.image_dataset_from_directory(
-    f"{DATA_DIR}/train",
-    labels='inferred',
-    label_mode='binary', # 'binary' para 2 classes. 0 para uma, 1 para outra.
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
+dataset_path = kagglehub.dataset_download('bhavikjikadara/dog-and-cat-classification-dataset')
+print('Data Source import completo.')
+
+directory = os.path.join(dataset_path, 'PetImages')
+
+images = []
+labels = []
+
+try:
+  for foldr in os.listdir(directory):
+    for filee in os.listdir(os.path.join(directory, foldr)):
+      images.append(os.path.join(foldr, filee))
+      labels.append(foldr)
+        
+except Exception as e:
+  print(f'Error: {e}')
+
+all_df = pd.DataFrame({
+    'Images': images,
+    'Labels': labels
+    })
+
+print(all_df)
+
+train_df, test_df = train_test_split(all_df, test_size=0.2, random_state=42, stratify=all_df['Labels'])
+
+print("Preparando o dataset de treino...")
+trainimgen = ImageDataGenerator( 
+    rotation_range=20,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    shear_range=0.2
+    )
+
+train_data = trainimgen.flow_from_dataframe(
+    dataframe=train_df,
+    directory=directory,
+    x_col='Images',
+    y_col='Labels',
+    target_size=(224,224),
     color_mode='rgb',
-    validation_split=0.5, # <-- Diz para reservar 50% dos dados
-    subset='training',    # <-- Diz para usar apenas a parte de 'treino' (os primeiros 50%)
-    seed=123              # <-- Importante para garantir que a divisão seja sempre a mesma
+    class_mode='binary',
+    batch_size=16,
 )
 
-# Carregar os datasets de teste e validação
-test_dataset = tf.keras.utils.image_dataset_from_directory(
-    f"{DATA_DIR}/test",
-    labels='inferred',
-    label_mode='binary', # 'binary' para 2 classes. 0 para uma, 1 para outra.
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE,
-    shuffle=True,
+print("Preparando o dataset de teste...")
+testimgen = ImageDataGenerator()
+
+test_data = testimgen.flow_from_dataframe(
+    dataframe=test_df,
+    directory=directory,
+    x_col='Images',
+    y_col='Labels',
+    target_size=(224,224),
     color_mode='rgb',
-    validation_split=0.5, # <-- Diz para reservar 50% dos dados
-    subset='training',    # <-- Diz para usar apenas a parte de 'treino' (os primeiros 50%)
-    seed=123              # <-- Importante para garantir que a divisão seja sempre a mesma
+    class_mode='binary',
+    batch_size=16,
+    shuffle=False
 )
-
-validation_dataset = tf.keras.utils.image_dataset_from_directory(
-    f"{DATA_DIR}/validation",
-    labels='inferred',
-    label_mode='binary',
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE,
-    shuffle=False,
-    color_mode='rgb'
-)
-
-# Ver as classes que foram encontradas
-class_names = train_dataset.class_names
-print(f"Classes encontradas: {class_names}")
-
-# Otimizar o pipeline de dados para performance
-AUTOTUNE = tf.data.AUTOTUNE
-train_dataset = train_dataset.cache().prefetch(buffer_size=AUTOTUNE)
-test_dataset = test_dataset.cache().prefetch(buffer_size=AUTOTUNE)
-validation_dataset = validation_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
 print("Construindo o modelo...")
-model = keras.Sequential([
+model = tf.keras.Sequential([
     # Input Layer e Data Augmentation
     layers.Input(shape=(224, 224, 3)),
     layers.RandomFlip("horizontal"),
@@ -105,10 +120,10 @@ model.compile(
 
 print("Iniciando o treinamento do modelo...")
 history = model.fit(
-    train_dataset,
+    train_data,
     epochs=15,
-    validation_data=test_dataset
+    validation_data=test_data
 )
 
 print("Salvando o modelo treinado...")
-model.save(r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\models\model_cnn.keras')
+model.save(r'C:\model_cnn.keras')

@@ -1,3 +1,4 @@
+import pandas as pd
 import os
 import random
 import shutil
@@ -7,7 +8,7 @@ import shutil
 # print(len(imagens))
 
 
-def dividir_dataset(source_dir, output_dir, split_counts):
+def dividir_dataset(source_dir, output_dir, split_ratios):
     """
     Divide um diretório de imagens classificado por pastas em conjuntos
     de treino, validação e teste.
@@ -18,11 +19,11 @@ def dividir_dataset(source_dir, output_dir, split_counts):
     """
     
     # Validação das proporções
-    # if sum(split_ratios) != 1.0:
-    #     raise ValueError("A soma das proporções de divisão deve ser 1.0")
+    if sum(split_ratios) != 1.0:
+        raise ValueError("A soma das proporções de divisão deve ser 1.0")
 
-    # train_ratio, val_ratio, test_ratio = split_ratios
-    train_ratio, val_ratio, test_ratio = split_counts
+    train_ratio, val_ratio, test_ratio = split_ratios
+    # train_ratio, val_ratio, test_ratio = split_counts
 
     # Cria o diretório de saída e os subdiretórios se não existirem
     print(f"Criando diretórios de saída em: {output_dir}")
@@ -73,9 +74,9 @@ def dividir_dataset(source_dir, output_dir, split_counts):
         ponto_corte_validacao = int((train_ratio + val_ratio) * total_imagens)
         
         # Divide a lista de arquivos
-        arquivos_treino = imagens[:train_ratio]
-        arquivos_validacao = imagens[train_ratio:(train_ratio + val_ratio)]
-        arquivos_teste = imagens[(train_ratio + val_ratio):(train_ratio + val_ratio + test_ratio)]
+        arquivos_treino = imagens[:ponto_corte_treino]
+        arquivos_validacao = imagens[ponto_corte_treino:ponto_corte_validacao]
+        arquivos_teste = imagens[ponto_corte_validacao:]
         
         # Função auxiliar para copiar os arquivos
         def copiar_arquivos(lista_arquivos, destino, nome_classe):
@@ -111,8 +112,8 @@ if __name__ == '__main__':
     
     # Defina as proporções (treino, validação, teste)
     # 70% para treino, 15% para validação, 15% para teste
-    # SPLIT_RATIOS = (0.7, 0.15, 0.15)
-    SPLIT_COUNTS = (2500, 500, 500)
+    SPLIT_RATIOS = (0.7, 0.15, 0.15)
+    # SPLIT_COUNTS = (2500, 500, 500)
     
     # Supondo que suas pastas originais sejam 'caes' e 'gatos'
     # Crie a pasta 'imagens_originais' e mova 'caes' e 'gatos' para dentro dela
@@ -127,4 +128,25 @@ if __name__ == '__main__':
     #             - imgB.jpg
     #     - preparar_dataset.py
 
-    dividir_dataset(SOURCE_DIR, OUTPUT_DIR, SPLIT_COUNTS)
+    # dividir_dataset(SOURCE_DIR, OUTPUT_DIR, SPLIT_RATIOS)
+
+SOURCE_DIR = r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\dataset\train' 
+
+def df_imag(source_dir):
+    images = []
+    labels = []
+    for foldr in os.listdir(source_dir):
+        for filee in os.listdir(os.path.join(source_dir, foldr)):
+            images.append(os.path.join(foldr, filee))
+            labels.append(foldr)
+            
+    all_df = pd.DataFrame({
+        'Images': images,
+        'Labels': labels
+        })
+    
+    return all_df
+
+df_train = df_imag(SOURCE_DIR)
+
+print(df_train)
