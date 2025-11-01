@@ -8,9 +8,11 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.keras
 
 # Arquivos de editores e SO
 .vscode/
 .idea/
 .DS_Store
 dataset/
+models/

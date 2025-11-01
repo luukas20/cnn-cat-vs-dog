@@ -126,4 +126,4 @@ history = model.fit(
 )
 
 print("Salvando o modelo treinado...")
-model.save(r'C:\model_cnn.keras')
+model.save(r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\models\model_cnn.keras')
