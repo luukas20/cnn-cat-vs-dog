@@ -10,6 +10,8 @@ import tensorflow as tf
 import tensorflow.keras.utils as image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers
+from tensorflow.keras.optimizers import Adam
+import tensorflow.keras.callbacks as cb
 
 # Parâmetros
 IMAGE_SIZE = (224, 224)
@@ -40,7 +42,8 @@ all_df = pd.DataFrame({
 
 print(all_df)
 
-train_df, test_df = train_test_split(all_df, test_size=0.2, random_state=42, stratify=all_df['Labels'])
+train_df, test_df = train_test_split(all_df, test_size=0.3, random_state=42, stratify=all_df['Labels'])
+val_df, test_df = train_test_split(test_df, test_size=0.5, random_state=42, stratify=test_df['Labels'])
 
 print("Preparando o dataset de treino...")
 trainimgen = ImageDataGenerator( 
@@ -66,6 +69,21 @@ testimgen = ImageDataGenerator()
 
 test_data = testimgen.flow_from_dataframe(
     dataframe=test_df,
+    directory=directory,
+    x_col='Images',
+    y_col='Labels',
+    target_size=(224,224),
+    color_mode='rgb',
+    class_mode='binary',
+    batch_size=16,
+    shuffle=False
+)
+
+print("Preparando o dataset de teste...")
+valimgen = ImageDataGenerator()
+
+val_data = valimgen.flow_from_dataframe(
+    dataframe=val_df,
     directory=directory,
     x_col='Images',
     y_col='Labels',
@@ -112,18 +130,26 @@ model = tf.keras.Sequential([
 model.summary()
 
 print("Compilando o modelo...")
+
 model.compile(
-    optimizer='adam', # Otimizador Adam é uma excelente escolha padrão
+    optimizer=Adam(learning_rate=0.0001), # Otimizador Adam é uma excelente escolha padrão
     loss=tf.keras.losses.BinaryCrossentropy(), # Loss para classificação binária com saída sigmoide
     metrics=['accuracy'] # Métrica para acompanhar durante o treino
 )
 
 print("Iniciando o treinamento do modelo...")
+
+callbacky = cb.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
 history = model.fit(
     train_data,
-    epochs=15,
-    validation_data=test_data
+    epochs=10,
+    validation_data=test_data,
+    callbacks=[callbacky]
 )
 
+print("Avaliando o modelo nos dados de validacao...")
+model.evaluate(val_data)
+
 print("Salvando o modelo treinado...")
-model.save(r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\models\model_cnn.keras')
+# model.save(r'C:\Users\lucas\OneDrive - Amelyer Company\Documentos\Projetos Python\Dogs vs Cats\models\model_cnn.keras')
